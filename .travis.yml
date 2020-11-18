@@ -1,0 +1,51 @@
+language: generic
+os:
+- linux
+- osx
+env:
+  matrix:
+  - CONDA_ENV=3.7
+  #- CONDA_ENV=3.8
+  global:
+    secure: KwZgJ1wdea2DRlYyiQLPOnbZgeubLKEL9JGc7eLKL95yfK2Dtb0ehVuhvmv32ZILdhm/oKZuc5GWotFjQLcDGz5cG5/1s7MNUuPOfzQpvpuE2hS3thLTIXHNZi1YJGORU1dJ3tyzBip3pa8wdSz/5fWvDL9Jggkf38ZeBWAnl1JlaU+JfRcfhe7Z2vWC4xYbqRfNyxo+r66p353JO4jGXwqrDYvwW1/Hy2zUUStUU4h+W6CmZgeF4p+hs0mlOdXXtRwLhdTFfS4/lOtBqYr6HOfQy0TSqVB8W/2zltf506HfBGtg80ZGQqEMBn2Fr9ewA9+lQywl1DWcieK4Pi4uBy/rGxUGUOnfdsXFIjhPXkxEIaQkNqNJ2f4fJS9Sh6tqL2dCGpuS0D5wOvlYKMsi8/HABHwR5YJEqhTXjIgnWuXmsbWqvZH6Kn3YoEdrrBv3V3gvZNOKM1Grw5fVJUazdfBT4lXm64ksYwwsNhfB8zKsCHRXFPdQek0rl1qrbLI/pq+iIQQXvlgYkqlxfK6oH6tjxdj3jq654TiCzYEW/eDSWpwW+N6suymVeq8ckwt9v/HM0JF9us863e164BnSDlvXtycQgRrDc3P/WaNiHjoQmkzgKjNbx/XDxtMMGlreNth8iahf3teOxzRQXzSMUN0FD6KdgKe7WIC1kMZ3bJ0=
+jobs:
+  include:
+  - stage: lint
+    os: linux
+    script:
+    - pip install flake8
+    - flake8 nwm
+  - stage: deploy
+    if: tag =~ v.*$
+    os: osx
+    env: CONDA_ENV=3.7
+    script:
+    - pip install twine wheel
+    - python setup.py bdist_wheel
+    - twine upload dist/*nwm* -u gantian127 -p$PYPI_PASS
+before_install:
+- |
+  if [[ $TRAVIS_OS_NAME == "osx" ]]; then
+    brew remove --force $(brew list)
+    brew cleanup -s
+    rm -rf $(brew --cache)
+  fi
+- |
+  if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+    curl https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh > $HOME/miniconda.sh
+  else
+    curl https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh > $HOME/miniconda.sh
+  fi
+- bash $HOME/miniconda.sh -b -p $(pwd)/anaconda
+- export PATH="$(pwd)/anaconda/bin:$PATH"
+- hash -r
+- conda config --set always_yes yes --set changeps1 no
+- conda create -n test_env python=$CONDA_ENV
+- source activate test_env
+- conda info -a && conda list
+install:
+- pip install -e .
+script:
+- pip install pytest pytest-cov pytest-datadir coveralls
+- pytest --cov=nwm --cov-report=xml:$(pwd)/coverage.xml -vvv
+after_success: coveralls

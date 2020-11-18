@@ -1,0 +1,17 @@
+name: nwm
+channels:
+  - conda-forge
+dependencies:
+  - bmipy
+  - click
+  - netcdf4
+  - numpy
+  - pyyaml
+  - requests
+  - xarray
+  - matplotlib
+  - pip
+  - pip:
+    - owslib
+    - cftime==1.1.0
+
